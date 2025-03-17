@@ -29,3 +29,12 @@ def send_code_to_user(email):
 
     d_email = EmailMessage(subject=subject,body=email_body,from_email=from_email,to=[email])
     d_email.send(fail_silently=False)
+
+def send_normal_email(data):
+    email = EmailMessage(
+        subject = data['email_subject'],
+        body = data['email_body'],
+        from_email = settings.DEFAULT_FROM_EMAIL,
+        to = [data['to_email']]
+    )
+    email.send()

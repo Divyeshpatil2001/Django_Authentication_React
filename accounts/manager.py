@@ -13,6 +13,7 @@ class UserManager(BaseUserManager):
     def create_user(self,email,first_name,last_name,password,**extra_fields):
         if email:
             try:
+                # normalize_email => convert into lowercase , remove spaces if & formatting email.
                 email = self.normalize_email(email)
                 self.email_validator(email)
             except: 
