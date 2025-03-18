@@ -8,6 +8,8 @@ from django.utils.encoding import smart_bytes,force_str
 from django.urls import reverse
 from .utils import send_normal_email
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=68,min_length=6,write_only=True)
@@ -97,20 +99,80 @@ class SetNewPasswordSerializer(serializers.Serializer):
         fields = ["password","confirm_password","uidb64","token"]
     
     def validate(self, attrs):
-        try:
-            token = attrs.get('token')
-            uidb64 = attrs.get('uidb64')
-            password = attrs.get('password')
-            confirm_password = attrs.get('confirm_password')
+        token = attrs.get('token')
+        uidb64 = attrs.get('uidb64')
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
 
+        if password != confirm_password:
+            raise serializers.ValidationError({"error": "Password does not match"})
+    
+        try:
             user_id = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=user_id)
-            if not PasswordResetTokenGenerator().check_token(user,token):
-                raise AuthenticationFailed("reset link is invalid or has expired",401)
-            if password != confirm_password:
-                raise AuthenticationFailed("password does not match")
+        
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                raise serializers.ValidationError({"error": "Reset link is invalid or has expired"})
+        
             user.set_password(password)
             user.save()
+        
             return user
         except Exception as e:
-            return AuthenticationFailed("link is invalid or has expired")
+            raise serializers.ValidationError({"error": "Link is invalid or has expired"})
+        
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError  
+
+class LogoutSerializer(serializers.Serializer):
+    """
+    Serializer for handling user logout by blacklisting a refresh token.
+
+    This serializer receives a refresh token, validates its presence, 
+    and attempts to blacklist it to prevent further use.
+
+    Attributes:
+        refresh_token (CharField): A required field that holds the user's refresh token.
+
+    Errors:
+        bad_token: Raised if the provided token is invalid or has expired.
+    """
+    
+    refresh_token = serializers.CharField()
+
+    default_error_messages = {
+        'bad_token': ('Token is invalid or has expired')
+    }
+
+    def validate(self, attrs):
+        """
+        Extracts and stores the refresh token from the input data.
+
+        Args:
+            attrs (dict): The dictionary containing the refresh token.
+
+        Returns:
+            dict: The validated attributes containing the refresh token.
+        """
+        self.token = attrs.get('refresh_token')
+        return attrs
+    
+    def save(self, **kwargs):
+        """
+        Blacklists the provided refresh token to prevent further use.
+
+        This method converts the refresh token string into a RefreshToken object.
+        If the token is valid, it is blacklisted, making it unusable for future authentication. 
+
+        If the token is invalid or has already expired, a `TokenError` exception 
+        is raised, and an error message is returned.
+
+        Raises:
+            TokenError: If the provided refresh token is invalid or expired.
+        """
+        try:
+            token = RefreshToken(self.token)  # Convert to RefreshToken instance
+            token.blacklist()  # Blacklist the token to prevent reuse
+        except TokenError:
+            self.fail('bad_token')  # Return a validation error if the token is invalid
