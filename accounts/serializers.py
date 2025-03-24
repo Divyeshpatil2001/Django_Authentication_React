@@ -156,6 +156,7 @@ class LogoutSerializer(serializers.Serializer):
             dict: The validated attributes containing the refresh token.
         """
         self.token = attrs.get('refresh_token')
+        print("here",self.token)
         return attrs
     
     def save(self, **kwargs):
@@ -172,6 +173,7 @@ class LogoutSerializer(serializers.Serializer):
             TokenError: If the provided refresh token is invalid or expired.
         """
         try:
+            print("comes")
             token = RefreshToken(self.token)  # Convert to RefreshToken instance
             token.blacklist()  # Blacklist the token to prevent reuse
         except TokenError:
