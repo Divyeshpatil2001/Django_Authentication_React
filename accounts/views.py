@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from rest_framework.exceptions import AuthenticationFailed
 
 # Create your views here.
 class RegisterUserView(GenericAPIView):
@@ -48,11 +49,11 @@ class VerifyUserEmail(GenericAPIView):
                     'message':"account email verified succesfully"
                 },status=status.HTTP_200_OK)
             return Response({
-                'message':"code is invalid user already verified"
-            },status=status.HTTP_204_NO_CONTENT)
+                'message':"user already verified"
+            },status=status.HTTP_208_ALREADY_REPORTED)
         except OneTimePassword.DoesNotExist:
             return Response({
-                'message':"passcode does not provided"
+                'message':"Invalid OTP. Please try again."
             },status=status.HTTP_404_NOT_FOUND)
 
 class LoginUserView(GenericAPIView):
@@ -60,8 +61,15 @@ class LoginUserView(GenericAPIView):
 
     def post(self,request):
         serializer = self.serializer_class(data=request.data,context={'request':request})
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data,status=status.HTTP_200_OK)
+        try:
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except AuthenticationFailed as e:
+            return Response({"message": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        except Exception as e:
+            print("last except:",e)
+            return Response({"message": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
     
 class TestAuthenticationView(GenericAPIView):
     permission_classes = [IsAuthenticated]
@@ -103,7 +111,8 @@ class LogoutUserView(GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self,request):
+        print(request.data)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_200_OK)
