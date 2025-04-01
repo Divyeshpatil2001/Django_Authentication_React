@@ -15,7 +15,20 @@ const Signup = () => {
   const handleSignInwithGoogle = async (response) => {
     console.log(response)
     const payload = response?.credential
-    // const server_res = axios.post("")
+    try {
+      const server_res = await axios.post("http://localhost:8000/api/v1/auth/google",{"access_token":payload})
+      console.log("google response:",server_res)
+      toast.success("Registration successful! You have signed up using Google.")
+      const user = {"email":server_res.data.email,"name":server_res.data.full_name}
+      localStorage.setItem("user",JSON.stringify(user))
+      localStorage.setItem("access",JSON.stringify(server_res.data.access_token))
+      localStorage.setItem("refresh",JSON.stringify(server_res.data.refresh_token))
+      navigate('/dashboard');
+      toast.success("login successfully");
+    } catch (error) {
+      console.log(error.response.data);
+      toast.error(error.response.data?.detail || "Google sign-in failed. Please try again later.");
+    }
   }
 
   useEffect(() => {

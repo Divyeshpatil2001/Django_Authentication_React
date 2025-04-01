@@ -15,8 +15,8 @@ const Profile = () => {
       navigate('/login')
       toast.error("your creditanls expired please relogin!!")
     }
-    getSomeData()
-  },[user,jwt_access])
+    // getSomeData()
+  },[jwt_access,user])
 
   const refresh = JSON.parse(localStorage.getItem('refresh'));
 
@@ -28,6 +28,7 @@ const Profile = () => {
     catch (error) {
       console.log("test auth",error?.response)
       if (error.response?.status == 401) {
+        console.log("dj")
         navigate("/login")
         toast.error("refresh token is expired can you login again")
       }
@@ -36,19 +37,28 @@ const Profile = () => {
 
   const handleLogout = async () => {
     try {
+      console.log(refresh)
       const res = await axiosInstance.post("/auth/logout/",{'refresh_token':refresh})
-      localStorage.removeItem('access')
-      localStorage.removeItem('refresh')
-      localStorage.removeItem('user')
-      navigate('/login')
-      toast.success('logout successfull')
-    }
+      console.log("Fdf")
+      toast.success("Logout successful");
+    } 
     catch (error) {
-      console.log(error.response.data)
-      toast.error(error.response.data[0],"sm")
+      console.log(error)
+      if (error.response?.status === 401) {
+          // 401 = Unauthorized → likely means the refresh token is expired or invalid (blacklist user)
+          toast.error("Session expired, please log in again.");
+      } else {
+          toast.error(error.response?.data?.detail || "Logout failed. Try again.");
+      }
+    } 
+    finally {
+      // Always clear stored tokens & navigate to login
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("user");
+      navigate("/login");
     }
-  }
-
+  };
   return (
     <div className='container'>
       <h2>hi {user && user.name}</h2>

@@ -1,7 +1,6 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import dayjs from "dayjs";
-import { toast } from 'react-toastify';
 
 
 const token = localStorage.getItem('access') ? JSON.parse(localStorage.getItem('access')) : ""
@@ -23,35 +22,37 @@ axiosInstance.interceptors.request.use(async req => {
         if (!isExpired) {
             return req;
         }
-        else {
+        // console.log("Access token expired, refreshing...");
+   
+        try {
+            const res = await axios.post(`${baseUrl}/auth/token/refresh/`,{refresh:refresh_token})
+            console.log(res.data)
+            console.log("settingup")
+            localStorage.setItem('access',JSON.stringify(res.data.access))
+            req.headers.Authorization = `Bearer ${res.data.access}`
+            return req;
+        }
+        catch (error) {
+            console.log(error.response?.data)
             try {
-                const res = await axios.post(`${baseUrl}/auth/token/refresh/`,{refresh:refresh_token})
-                console.log(res.data)
-                console.log("settingup")
-                localStorage.setItem('access',JSON.stringify(res.data.access))
-                req.headers.Authorization = `Bearer ${res.data.access}`
-                return req;
+                const res = await axios.post(`${baseUrl}/auth/logout/`,{"refresh_token":refresh_token})
+                console.log("logout done")
+                localStorage.removeItem('access')
+                localStorage.removeItem('refresh')
+                localStorage.removeItem('user')
             }
             catch (error) {
-                console.log(error.response?.data)
-                try {
-                    const res = await axios.post(`${baseUrl}/auth/logout/`,{"refresh_token":refresh_token})
-                    console.log("logout done")
-                    localStorage.removeItem('access')
-                    localStorage.removeItem('refresh')
-                    localStorage.removeItem('user')
-                }
-                catch (error) {
-                    console.log(error.response)
-                    localStorage.removeItem('access')
-                    localStorage.removeItem('refresh')
-                    localStorage.removeItem('user')
-                }
-                
+                console.log("Refresh token expired, logging out user...");
+                console.log(error.response)
+                localStorage.removeItem('access')
+                localStorage.removeItem('refresh')
+                localStorage.removeItem('user')
             }
+                
         }
-        return req; 
+        // return req; 
     }
+    return req; 
 })
 
 export default axiosInstance;

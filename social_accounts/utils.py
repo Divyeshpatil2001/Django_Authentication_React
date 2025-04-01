@@ -10,6 +10,7 @@ class Google():
     def validate(access_token):
         try:
             id_info = id_token.verify_oauth2_token(access_token,requests.Request())
+            print("access:-",access_token)
             if "accounts.google.com" in id_info['iss']:
                 return id_info
         except Exception as e:
@@ -29,7 +30,8 @@ def register_social_user(provider,email,first_name,last_name):
     user = User.objects.filter(email=email)
     if user.exists():
         if provider == user[0].auth_providers:
-            login_social_user(email,settings.SOCIAL_AUTH_PASSWORD)
+            result = login_social_user(email,settings.SOCIAL_AUTH_PASSWORD)
+            return result
         else:
             raise AuthenticationFailed(
                 detail=f"please continue your login with {user[0].auth_providers}"
@@ -45,4 +47,5 @@ def register_social_user(provider,email,first_name,last_name):
         registered_user.auth_providers = provider
         registered_user.is_verified = True
         registered_user.save()
-        login_social_user(email=registered_user.email,pasword=settings.SOCIAL_AUTH_PASSWORD)
+        result = login_social_user(email=registered_user.email,password=settings.SOCIAL_AUTH_PASSWORD)
+        return result

@@ -75,6 +75,7 @@ class TestAuthenticationView(GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self,request):
+        print(request.data)
         data = {'msg':"is it works"}
         return Response(data,status=status.HTTP_200_OK)
     
