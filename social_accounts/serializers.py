@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .utils import Google,register_social_user
+from .github import Github
 from django.conf import settings
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed,ValidationError
 
 class GoogleSignInSerializer(serializers.Serializer):
     access_token = serializers.CharField(min_length=6)
@@ -21,3 +22,21 @@ class GoogleSignInSerializer(serializers.Serializer):
         last_name = google_user_data['family_name']
         provider = "google"
         return register_social_user(provider,email,first_name,last_name)
+    
+class GithubOauthSerializer(serializers.Serializer):
+    code = serializers.CharField(min_length=2)
+
+    def validate_code(self,code):
+        access_token = Github.exchange_code_for_token(code)
+        if access_token:
+            user = Github.retrieve_github_user(access_token)
+            full_name = user['name']
+            email = user['email']
+            names = full_name.split("")
+            firstName = names[1]
+            lastName = names[0]
+            provider = "github"
+            return register_social_user(provider,email,firstName,lastName)
+
+        else:
+            raise ValidationError("token is invalid or has expired")
