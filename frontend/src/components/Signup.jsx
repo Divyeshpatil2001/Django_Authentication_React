@@ -33,17 +33,17 @@ const Signup = () => {
     }
   }
 
-  // useEffect(() => {
-  //   /* global google*/
-  //   google.accounts.id.initialize({
-  //     client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  //     callback: handleSignInwithGoogle
-  //   })
-  //   google.accounts.id.renderButton(
-  //     document.getElementById("signInDiv"),
-  //     {theme:"outline",size:"large",text:"continue_width",shape:"circle",width:"300"}
-  //   )
-  // }, [])
+  useEffect(() => {
+    /* global google*/
+    google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback: handleSignInwithGoogle
+    })
+    google.accounts.id.renderButton(
+      document.getElementById("signInDiv"),
+      {theme:"outline",size:"large",text:"continue_width",shape:"circle",width:"300"}
+    )
+  }, [])
   
 
   const navigate = useNavigate()
@@ -87,7 +87,8 @@ const Signup = () => {
   }
 
   const handleSignInwithGithub = () => {
-    window.location.assign(`https://github.com/login/oauth/authorize/?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}`)
+    console.log(import.meta.env.VITE_GITHUB_CLIENT_ID)
+    window.location.assign(`https://github.com/login/oauth/authorize/?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}&scope=user:email`)
   }
 
   const send_code_to_backend = async () => {

@@ -3,6 +3,7 @@ from .utils import Google,register_social_user
 from .github import Github
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed,ValidationError
+import requests
 
 class GoogleSignInSerializer(serializers.Serializer):
     access_token = serializers.CharField(min_length=6)
@@ -30,13 +31,34 @@ class GithubOauthSerializer(serializers.Serializer):
         access_token = Github.exchange_code_for_token(code)
         if access_token:
             user = Github.retrieve_github_user(access_token)
-            full_name = user['name']
-            email = user['email']
-            names = full_name.split("")
-            firstName = names[1]
-            lastName = names[0]
+            print("compelte rete",user)
+            full_name = user.get('name') or user.get('login')
+            email = user.get('email')
+
+            # Get email if it's not returned directly
+            if not email:
+                headers = {"Authorization": f"Bearer {access_token}"}
+                email_response = requests.get("https://api.github.com/user/emails", headers=headers)
+                try:
+                    email_data = email_response.json()
+                except Exception as e:
+                    print("Error parsing JSON:", e)
+                    print("Raw response text:", email_response.text)
+                    raise
+                email = get_primary_verified_email(email_data)
+            print("email_data ->", email)
+
+            # Split full_name by space
+            names = full_name.split(" ")
+            firstName = names[0]
+            lastName = names[1] if len(names) > 1 else "-"
             provider = "github"
             return register_social_user(provider,email,firstName,lastName)
 
         else:
             raise ValidationError("token is invalid or has expired")
+def get_primary_verified_email(email_data):
+    for item in email_data:
+        if item.get("primary") and item.get("verified"):
+            return item.get("email")
+    return None

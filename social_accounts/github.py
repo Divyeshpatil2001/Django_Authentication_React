@@ -22,6 +22,7 @@ class Github:
         if "error" in payload:
             raise AuthenticationFailed(f"GitHub OAuth Error: {payload.get('error_description', 'Unknown error')}")
         token = payload.get("access_token")
+        print("tojen",token)
         if not token:
             raise AuthenticationFailed("GitHub authentication failed. No access token received.")
         print(token)
@@ -29,6 +30,7 @@ class Github:
 
     @staticmethod
     def retrieve_github_user(access_token):
+        print("under retrireve")
         try:
             headers = {
                 "Authorization":f"Bearer {access_token}"
