@@ -10,9 +10,21 @@ class Github:
             "client_secret":settings.GITHUB_CLIENT_SECRET,
             "code":code
         }
-        res = requests.post("https://github.com/login/oauth/access_token",params=param_payload,headers={'Accept': 'application/json'})
+        try:
+            print(param_payload)
+            res = requests.post("https://github.com/login/oauth/access_token",params=param_payload,headers={'Accept': 'application/json'})
+            res.raise_for_status()
+        except Exception as e:
+            print("error",e)
+            raise AuthenticationFailed("Failed to exchange code for token")
         payload = res.json()
+        print("pay",payload)
+        if "error" in payload:
+            raise AuthenticationFailed(f"GitHub OAuth Error: {payload.get('error_description', 'Unknown error')}")
         token = payload.get("access_token")
+        if not token:
+            raise AuthenticationFailed("GitHub authentication failed. No access token received.")
+        print(token)
         return token
 
     @staticmethod

@@ -19,6 +19,7 @@ class GithubSignInView(GenericAPIView):
     serializer_class = GithubOauthSerializer
 
     def post(self,request):
+        print(request.data)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             data = ((serializer.validated_data)['code'])

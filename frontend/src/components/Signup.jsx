@@ -1,9 +1,11 @@
 import React, { useState,useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../utils/axiosinstance';
+import { useNavigate,useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 const Signup = () => {
+  const [searchparams] = useSearchParams();
   const [formdata,setFormData] = useState({
     email : "",
     first_name : "",
@@ -31,17 +33,17 @@ const Signup = () => {
     }
   }
 
-  useEffect(() => {
-    /* global google*/
-    google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_CLIENT_ID,
-      callback: handleSignInwithGoogle
-    })
-    google.accounts.id.renderButton(
-      document.getElementById("signInDiv"),
-      {theme:"outline",size:"large",text:"continue_width",shape:"circle",width:"300"}
-    )
-  }, [])
+  // useEffect(() => {
+  //   /* global google*/
+  //   google.accounts.id.initialize({
+  //     client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  //     callback: handleSignInwithGoogle
+  //   })
+  //   google.accounts.id.renderButton(
+  //     document.getElementById("signInDiv"),
+  //     {theme:"outline",size:"large",text:"continue_width",shape:"circle",width:"300"}
+  //   )
+  // }, [])
   
 
   const navigate = useNavigate()
@@ -83,6 +85,39 @@ const Signup = () => {
       }
     }
   }
+
+  const handleSignInwithGithub = () => {
+    window.location.assign(`https://github.com/login/oauth/authorize/?client_id=${import.meta.env.VITE_GITHUB_CLIENT_ID}`)
+  }
+
+  const send_code_to_backend = async () => {
+    if (searchparams) {
+      try {
+        const qcode = searchparams.get('code');
+        console.log(qcode)
+        const response = await axiosInstance.post("/auth/github/",{"code":qcode})
+        const result = response.data;
+        console.log("github response:",result)
+        toast.success("Registration successful! You have signed up using Github.")
+        const user = {"email":result.email,"name":result.full_name}
+        localStorage.setItem("user",JSON.stringify(user))
+        localStorage.setItem("access",JSON.stringify(result.access_token))
+        localStorage.setItem("refresh",JSON.stringify(result.refresh_token))
+        navigate('/dashboard');
+        toast.success("login successfully");
+      } catch (error) {
+        console.log(error.response);
+        toast.error(error.response.data?.detail || "Github sign-in failed. Please try again later.");
+      }
+    }
+  }
+
+  let code = searchparams.get('code')
+  useEffect(() => {
+    if (code) {
+      send_code_to_backend()
+    }
+  },[code])
   
 
   return (
@@ -120,7 +155,7 @@ const Signup = () => {
         </form>
         <h3 className="text-option">Or </h3>
         <div className='githubContainer'>
-          <button>Sign up with Github</button>
+          <button onClick={handleSignInwithGithub}>Sign up with Github</button>
         </div>
         <div className='googleContainer' id='signInDiv' />
         </div>
